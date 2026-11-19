@@ -1,0 +1,77 @@
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace AesEcbExample
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string originalText = "Секретне повідомлення. Секретне повідомлення. Секретне повідомлення.";
+            Console.WriteLine("Оригінальний текст: " + originalText);
+
+            // Створення ключа (для AES-256 він 32 байти)
+            byte[] key = new byte[32];
+            RandomNumberGenerator.Fill(key); // Заповнення ключа випадковими байтами
+
+            // Шифрування
+            byte[] encryptedBytes = EncryptECB(originalText, key);
+            Console.WriteLine("\nЗашифровані дані (Base64):");
+            Console.WriteLine(Convert.ToBase64String(encryptedBytes));
+
+            // Розшифровка
+            string decryptedText = DecryptECB(encryptedBytes, key);
+            Console.WriteLine("\nРозшифрований текст: " + decryptedText);
+        }
+
+        public static byte[] EncryptECB(string plainText, byte[] key)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = key;
+                aes.Mode = CipherMode.ECB; // Режим ECB
+                aes.Padding = PaddingMode.PKCS7;
+
+                // Для режиму ECB вектор ініціалізації не потрібен, тому передаємо null
+                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, null);
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter sw = new StreamWriter(cs))
+                        {
+                            sw.Write(plainText);
+                        }
+                        return ms.ToArray();
+                    }
+                }
+            }
+        }
+
+        public static string DecryptECB(byte[] cipherText, byte[] key)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = key;
+                aes.Mode = CipherMode.ECB; // Режим ECB
+                aes.Padding = PaddingMode.PKCS7;
+
+                ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, null);
+
+                using (MemoryStream ms = new MemoryStream(cipherText))
+                {
+                    using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader sr = new StreamReader(cs))
+                        {
+                            return sr.ReadToEnd();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
